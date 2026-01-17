@@ -2,6 +2,7 @@ const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('dis
 const schedule = require('node-schedule');
 const { getSetting, searchBirthdays } = require('../../util/database');
 const { sendBirthdayReminder, handleBirthdayAdd, handleBirthdayRemove } = require('./index');
+const { COLORS, MESSAGES, createEmbed, respondToInteraction } = require('./utils');
 
 function setupBirthdayEvents(client) {
   // Handle interactions
@@ -81,10 +82,7 @@ function setupBirthdayEvents(client) {
           components.push(row2);
         }
 
-        const embed = new EmbedBuilder()
-          .setTitle('新增生日提醒')
-          .setDescription(`選擇生日日期：`)
-          .setColor(0x00ff00);
+        const embed = createEmbed(MESSAGES.TITLES.ADD, `選擇生日日期：`, COLORS.SUCCESS);
 
         await interaction.update({ embeds: [embed], components: components });
       } else if (interaction.customId.startsWith('birthday_add_day_')) {

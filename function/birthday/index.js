@@ -1,72 +1,45 @@
 // Birthday reminder core functions
-const { EmbedBuilder, MessageFlags } = require('discord.js');
+const { EmbedBuilder } = require('discord.js');
 const { getBirthdaysByDate, getSetting, addBirthday, removeBirthday } = require('../../util/database');
+const { COLORS, MESSAGES, getUserInfo, formatDate, createEmbed, respondToInteraction, respondWithError } = require('./utils');
 
 async function sendBirthdayReminder(client, dateStr, channelId) {
   try {
     const birthdays = await getBirthdaysByDate(dateStr);
-    if (birthdays.length > 0) {
-      const channel = client.channels.cache.get(channelId);
-      if (!channel) return;
+    if (birthdays.length === 0) return;
 
-      const embed = new EmbedBuilder()
-        .setTitle('🎉 明天生日提醒')
-        .setColor(0xffd700);
+    const channel = client.channels.cache.get(channelId);
+    if (!channel) return;
 
-      let description = '';
-      for (const birthday of birthdays) {
-        description += `<@${birthday.user_id}> (${birthday.display_name})\n`;
-      }
-      embed.setDescription(description);
+    const embed = createEmbed('🎉 明天生日提醒', '', COLORS.BIRTHDAY);
 
-      await channel.send({ embeds: [embed] });
+    let description = '';
+    for (const birthday of birthdays) {
+      description += `<@${birthday.user_id}> (${birthday.display_name})\n`;
     }
+    embed.setDescription(description);
+
+    await channel.send({ embeds: [embed] });
   } catch (error) {
     console.error('Error sending birthday reminder:', error);
   }
 }
 
 async function handleBirthdayAdd(client, interaction, userInputOrigin, month, day) {
-  const date = `${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}`;
+  const date = formatDate(month, day);
+  const userInput = userInputOrigin.trim().replace(/^<@!?(\d+)>$/, '$1');
 
-  const userInput = userInputOrigin.trim().replace("<@", "").replace(">", "");;
-  
   try {
-    let displayName = userInput;
-    let username = userInput;
-    let userId = userInput;
-
-    // Try to fetch user if it's a Discord ID
-    try {
-      const user = await client.users.fetch(userInput);
-      displayName = user.displayName;
-      username = user.username;
-      userId = user.id;
-    } catch (error) {
-      // If not a valid Discord ID, use the input as custom name
-      console.log('Using custom name:', userInput);
-    }
-
+    const { displayName, username, userId } = await getUserInfo(client, userInput);
     await addBirthday(userId, displayName, username, date);
 
-    const embed = new EmbedBuilder()
-      .setTitle('生日提醒已新增')
-      .setDescription(`已為 ${/^\d+$/.test(userId) ? `<@${userId}>` : displayName} 新增生日提醒：${date}`)
-      .setColor(0x00ff00);
+    const display = /^\d+$/.test(userId) ? `<@${userId}>` : displayName;
+    const embed = createEmbed(MESSAGES.SUCCESS.ADD_SUCCESS, `已為 ${display} 新增生日提醒：${date}`, COLORS.SUCCESS);
 
-    if (interaction.replied || interaction.deferred) {
-      await interaction.editReply({ embeds: [embed], components: [] });
-    } else {
-      await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-    }
+    await respondToInteraction(interaction, embed, [], true);
   } catch (error) {
     console.error(error);
-    const errorMessage = { content: '新增生日提醒時發生錯誤。', flags: MessageFlags.Ephemeral };
-    if (interaction.replied || interaction.deferred) {
-      await interaction.editReply(errorMessage);
-    } else {
-      await interaction.reply(errorMessage);
-    }
+    await respondWithError(interaction, MESSAGES.ERRORS.ADD_FAILED);
   }
 }
 
@@ -74,45 +47,16 @@ async function handleBirthdayRemove(client, interaction, userId) {
   try {
     const changes = await removeBirthday(userId);
     if (changes > 0) {
-      let displayName = userId;
-      let username = userId;
+      const { displayName } = await getUserInfo(client, userId);
+      const embed = createEmbed(MESSAGES.SUCCESS.REMOVE_SUCCESS, `已刪除 ${displayName} 的生日提醒`, COLORS.ERROR);
 
-      // Try to fetch user if it's a Discord ID
-      try {
-        const user = await client.users.fetch(userId);
-        displayName = user.displayName;
-        username = user.username;
-      } catch (error) {
-        // If not a valid Discord ID, use the input as custom name
-        console.log('Using custom name for removal:', userId);
-      }
-
-      const embed = new EmbedBuilder()
-        .setTitle('生日提醒已刪除')
-        .setDescription(`已刪除 ${displayName} 的生日提醒`)
-        .setColor(0xff0000);
-
-      if (interaction.replied || interaction.deferred) {
-        await interaction.editReply({ embeds: [embed], components: [] });
-      } else {
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-      }
+      await respondToInteraction(interaction, embed, [], true);
     } else {
-      const errorMessage = { content: '找不到該用戶的生日提醒。', flags: MessageFlags.Ephemeral };
-      if (interaction.replied || interaction.deferred) {
-        await interaction.editReply(errorMessage);
-      } else {
-        await interaction.reply(errorMessage);
-      }
+      await respondWithError(interaction, MESSAGES.ERRORS.USER_NOT_FOUND);
     }
   } catch (error) {
     console.error(error);
-    const errorMessage = { content: '刪除生日提醒時發生錯誤。', flags: MessageFlags.Ephemeral };
-    if (interaction.replied || interaction.deferred) {
-      await interaction.editReply(errorMessage);
-    } else {
-      await interaction.reply(errorMessage);
-    }
+    await respondWithError(interaction, MESSAGES.ERRORS.REMOVE_FAILED);
   }
 }
 
