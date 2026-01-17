@@ -1,6 +1,7 @@
-const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, REST, Routes, EmbedBuilder, MessageFlags } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
+const { setupBirthdayEvents } = require('./function/birthday/event');
 require('dotenv').config();
 
 const client = new Client({
@@ -9,13 +10,34 @@ const client = new Client({
   ],
 });
 
+function getCommandFiles(dirPath) {
+  const files = [];
+  const items = fs.readdirSync(dirPath);
+
+  for (const item of items) {
+    const fullPath = path.join(dirPath, item);
+    const stat = fs.statSync(fullPath);
+
+    if (stat.isDirectory()) {
+      files.push(...getCommandFiles(fullPath));
+    } else if (item.endsWith('.js')) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
 client.commands = new Collection();
 
 const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+const functionPath = path.join(__dirname, 'function');
+const commandFiles = [
+  ...getCommandFiles(commandsPath),
+  ...getCommandFiles(functionPath).filter(file => file.includes('commands.js'))
+];
 
-for (const file of commandFiles) {
-  const filePath = path.join(commandsPath, file);
+for (const filePath of commandFiles) {
   const command = require(filePath);
   if ('data' in command && 'execute' in command) {
     client.commands.set(command.data.name, command);
@@ -43,6 +65,9 @@ client.once('ready', async () => {
   } catch (error) {
     console.error(error);
   }
+
+  // Setup birthday events
+  setupBirthdayEvents(client);
 });
 
 client.on('interactionCreate', async (interaction) => {
@@ -60,9 +85,9 @@ client.on('interactionCreate', async (interaction) => {
   } catch (error) {
     console.error(error);
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: '執行此指令時發生錯誤！', ephemeral: true });
+      await interaction.followUp({ content: '執行此指令時發生錯誤！', flags: MessageFlags.Ephemeral });
     } else {
-      await interaction.reply({ content: '執行此指令時發生錯誤！', ephemeral: true });
+      await interaction.reply({ content: '執行此指令時發生錯誤！', flags: MessageFlags.Ephemeral });
     }
   }
 });
