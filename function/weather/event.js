@@ -1,43 +1,66 @@
 const schedule = require('node-schedule');
 const { getTodayForecast, createWeatherEmbed } = require('./index');
 const { getRandomFortune } = require('../fortune/utils');
-const { getAllUsersWithSetting } = require('../../util/database');
+const { getAllUsersWithSetting, getUserSetting } = require('../../util/database');
+
+const weatherJobs = new Map(); // userId -> job
 
 function setupWeatherEvents(client) {
-  // Schedule daily weather report at 7:00 AM
-  const rule = new schedule.RecurrenceRule();
-  rule.hour = 7;
-  rule.minute = 0;
-  rule.tz = 'Asia/Hong_Kong'; // Hong Kong timezone
+  // Function to schedule weather reports for a user
+  async function scheduleWeatherForUser(userId) {
+    // Cancel existing job
+    if (weatherJobs.has(userId)) {
+      weatherJobs.get(userId).cancel();
+    }
 
-  schedule.scheduleJob(rule, async () => {
-    try {
-      const forecast = await getTodayForecast();
-      if (!forecast) return;
+    const hour = await getUserSetting(userId, 'weather_reminder_hour') || '7';
+    const minute = await getUserSetting(userId, 'weather_reminder_minute') || '0';
 
-      const fortune = getRandomFortune(client.user.id);
+    const rule = new schedule.RecurrenceRule();
+    rule.hour = parseInt(hour);
+    rule.minute = parseInt(minute);
+    rule.tz = 'Asia/Hong_Kong';
 
-      const embed = createWeatherEmbed('今天天氣預報', forecast);
-      embed.addFields({ name: '運氣', value: fortune, inline: false });
+    const job = schedule.scheduleJob(rule, async () => {
+      try {
+        const forecast = await getTodayForecast();
+        if (!forecast) return;
 
-      // Get all users subscribed to weather
-      const subscribedUsers = await getAllUsersWithSetting('weather_subscription', 'true');
+        const fortune = getRandomFortune(client.user.id);
 
-      for (const userId of subscribedUsers) {
-        try {
-          const user = await client.users.fetch(userId);
-          await user.send({ embeds: [embed] });
-        } catch (error) {
-          console.error(`Failed to send weather report to ${userId}:`, error);
-        }
+        const embed = createWeatherEmbed('今天天氣預報', forecast);
+        embed.addFields({ name: '運氣', value: fortune, inline: false });
+
+        const user = await client.users.fetch(userId);
+        await user.send({ embeds: [embed] });
+      } catch (error) {
+        console.error(`Error sending weather report to ${userId}:`, error);
       }
-    } catch (error) {
-      console.error('Error sending daily weather report:', error);
+    });
+
+    weatherJobs.set(userId, job);
+  }
+
+  // Initial setup
+  client.once('ready', async () => {
+    const subscribedUsers = await getAllUsersWithSetting('weather_subscription', 'true');
+    for (const userId of subscribedUsers) {
+      await scheduleWeatherForUser(userId);
     }
   });
 
   console.log('Weather events scheduled.');
 }
+
+// Export function to reschedule when subscription changes
+async function rescheduleWeatherForUser(client, userId) {
+  await scheduleWeatherForUser(client, userId);
+}
+
+module.exports = {
+  setupWeatherEvents,
+  rescheduleWeatherForUser,
+};
 
 module.exports = {
   setupWeatherEvents,

@@ -89,7 +89,39 @@ async function getCurrentWeather(region) {
 
   // Humidity
   const humidityData = data.humidity?.data?.find(st => st.place === region);
-  const humidity = humidityData ? `${humidityData.value}%` : 'N/A';
+  let humidity = 'N/A';
+  if (humidityData && typeof humidityData.value === 'number') {
+    humidity = `${humidityData.value}%`;
+  } else {
+    // If no data for region, use observatory or first in list
+    const observatoryHumidity = data.humidity?.data?.find(st => st.place === '香港天文台' && typeof st.value === 'number');
+    if (observatoryHumidity) {
+      humidity = `${observatoryHumidity.value}% (天文台)`;
+    } else {
+      const first = data.humidity?.data?.find(st => typeof st.value === 'number');
+      if (first) {
+        humidity = `${first.value}% (${first.place})`;
+      }
+    }
+  }
+
+  // Rainfall
+  const rainfallData = data.rainfall?.data?.find(st => st.place === region);
+  let rainfall = 'N/A';
+  if (rainfallData && typeof rainfallData.value === 'number') {
+    rainfall = `${rainfallData.value} ${rainfallData.unit}`;
+  } else {
+    // If no data for region, use observatory or first in list
+    const observatoryRainfall = data.rainfall?.data?.find(st => st.place === '西貢' && typeof st.max === 'number');
+    if (observatoryRainfall) {
+      rainfall = `${observatoryRainfall.max} ${observatoryRainfall.unit} (西貢)`;
+    } else {
+      const first = data.rainfall?.data?.find(st => typeof st.max === 'number');
+      if (first) {
+        rainfall = `${first.max} ${first.unit} (${first.place})`;
+      }
+    }
+  }
 
   // Wind (try mean wind)
   const windData = data.wind?.data?.find(st => st.place === region);
@@ -123,6 +155,7 @@ async function getCurrentWeather(region) {
     maxTemp: forecast?.maxTemp || 'N/A',
     minTemp: forecast?.minTemp || 'N/A',
     humidity,
+    rainfall,
     wind,
     description: weatherDesc,
     warning,
@@ -205,12 +238,13 @@ function createWeatherEmbed(title, weatherData, region = null) {
   embed.addFields(
     { name: '🌡️ 温度', value: tempField, inline: true },
     { name: '🌤️ 天氣狀況', value: weatherData.description || 'N/A', inline: true },
-     { name: '\u200b', value: '\u200b', inline: false }, 
+     { name: '\u200b', value: ' ', inline: false }, 
     { name: '💧 濕度', value: weatherData.humidity || 'N/A', inline: true},
-     { name: '\u200b', value: '\u200b', inline: false }, 
+    { name: '🌧️ 降雨量', value: weatherData.rainfall || 'N/A', inline: true },
+     { name: '\u200b', value: ' ', inline: false }, 
     { name: '🌅 日出', value: weatherData.sunrise || 'N/A', inline: true },
     { name: '🌇 日落', value: weatherData.sunset || 'N/A', inline: true },
-     { name: '\u200b', value: '\u200b', inline: false }, 
+     { name: '\u200b', value: ' ', inline: false }, 
     { name: '🌙 月出', value: weatherData.moonrise || 'N/A', inline: true },
     { name: '🌑 月落', value: weatherData.moonset || 'N/A', inline: true }
   );

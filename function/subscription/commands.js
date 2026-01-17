@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { setUserSetting, getUserSetting } = require('../../util/database');
 const { createEmbed, COLORS, respondToInteraction, respondWithError } = require('./utils');
+const { rescheduleWeatherForUser } = require('../weather/event');
 
 const SUBSCRIPTIONS = {
   '生日提醒': 'birthday_subscription',
