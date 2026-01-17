@@ -1,7 +1,7 @@
 const schedule = require('node-schedule');
 const { getTodayForecast, createWeatherEmbed } = require('./index');
 const { getRandomFortune } = require('../fortune/utils');
-const { getSetting } = require('../../util/database');
+const { getAllUsersWithSetting } = require('../../util/database');
 
 function setupWeatherEvents(client) {
   // Schedule daily weather report at 7:00 AM
@@ -12,12 +12,6 @@ function setupWeatherEvents(client) {
 
   schedule.scheduleJob(rule, async () => {
     try {
-      const channelId = await getSetting('weather_channel');
-      if (!channelId) return; // No channel set
-
-      const channel = client.channels.cache.get(channelId);
-      if (!channel) return;
-
       const forecast = await getTodayForecast();
       if (!forecast) return;
 
@@ -26,7 +20,17 @@ function setupWeatherEvents(client) {
       const embed = createWeatherEmbed('今天天氣預報', forecast);
       embed.addFields({ name: '運氣', value: fortune, inline: false });
 
-      await channel.send({ embeds: [embed] });
+      // Get all users subscribed to weather
+      const subscribedUsers = await getAllUsersWithSetting('weather_subscription', 'true');
+
+      for (const userId of subscribedUsers) {
+        try {
+          const user = await client.users.fetch(userId);
+          await user.send({ embeds: [embed] });
+        } catch (error) {
+          console.error(`Failed to send weather report to ${userId}:`, error);
+        }
+      }
     } catch (error) {
       console.error('Error sending daily weather report:', error);
     }

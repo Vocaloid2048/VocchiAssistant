@@ -135,6 +135,14 @@ function setSetting(key, value) {
   });
 }
 
+function setConfig(key, value, userId = null) {
+  if (userId) {
+    return setUserSetting(userId, key, value);
+  } else {
+    return setSetting(key, value);
+  }
+}
+
 function getSetting(key) {
   return new Promise((resolve, reject) => {
     db.get('SELECT value FROM settings WHERE key = ?', [key], (err, row) => {
@@ -173,6 +181,18 @@ function getUserSetting(userId, key) {
   });
 }
 
+function getAllUsersWithSetting(key, value) {
+  return new Promise((resolve, reject) => {
+    db.all('SELECT user_id FROM user_settings WHERE key = ? AND value = ?', [key, value], (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows.map(row => row.user_id));
+      }
+    });
+  });
+}
+
 module.exports = {
   addBirthday,
   removeBirthday,
@@ -181,8 +201,10 @@ module.exports = {
   searchBirthdays,
   setSetting,
   getSetting,
+  setConfig,
   setUserSetting,
   getUserSetting,
+  getAllUsersWithSetting,
   getNextBirthday,
   close: () => db.close()
 };

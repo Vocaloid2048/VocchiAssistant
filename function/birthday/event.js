@@ -1,7 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 const schedule = require('node-schedule');
-const { getSetting, searchBirthdays } = require('../../util/database');
-const { sendBirthdayReminder, handleBirthdayAdd, handleBirthdayRemove } = require('./index');
+const { searchBirthdays } = require('../../util/database');
+const { sendBirthdayReminder, handleBirthdayAdd, handleBirthdayRemove, sendBirthdayGreetings } = require('./index');
 const { COLORS, MESSAGES, createEmbed, respondToInteraction } = require('./utils');
 
 function setupBirthdayEvents(client) {
@@ -99,6 +99,7 @@ function setupBirthdayEvents(client) {
 
   // Setup daily schedule
   client.once('ready', () => {
+    // Reminder for tomorrow's birthdays at 23:50
     schedule.scheduleJob('50 23 * * *', async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -106,10 +107,17 @@ function setupBirthdayEvents(client) {
       const day = tomorrow.getDate().toString().padStart(2, '0');
       const dateStr = `${month}/${day}`;
 
-      const channelId = await getSetting('reminder_channel');
-      if (channelId) {
-        await sendBirthdayReminder(client, dateStr, channelId);
-      }
+      await sendBirthdayReminder(client, dateStr);
+    });
+
+    // Birthday greetings at 00:00 on the birthday day
+    schedule.scheduleJob('0 0 * * *', async () => {
+      const today = new Date();
+      const month = (today.getMonth() + 1).toString().padStart(2, '0');
+      const day = today.getDate().toString().padStart(2, '0');
+      const dateStr = `${month}/${day}`;
+
+      await sendBirthdayGreetings(client, dateStr);
     });
   });
 }
