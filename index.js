@@ -2,6 +2,7 @@ const { Client, GatewayIntentBits, Collection, REST, Routes, EmbedBuilder, Messa
 const fs = require('node:fs');
 const path = require('node:path');
 const { setupBirthdayEvents } = require('./function/birthday/event');
+const { setupFortuneEvents } = require('./function/fortune/event');
 require('dotenv').config();
 
 const client = new Client({
@@ -30,10 +31,8 @@ function getCommandFiles(dirPath) {
 
 client.commands = new Collection();
 
-const commandsPath = path.join(__dirname, 'commands');
 const functionPath = path.join(__dirname, 'function');
 const commandFiles = [
-  ...getCommandFiles(commandsPath),
   ...getCommandFiles(functionPath).filter(file => file.includes('commands.js'))
 ];
 
@@ -68,6 +67,9 @@ client.once('ready', async () => {
 
   // Setup birthday events
   setupBirthdayEvents(client);
+
+  // Setup fortune events
+  setupFortuneEvents(client);
 });
 
 client.on('interactionCreate', async (interaction) => {
