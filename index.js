@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { setupBirthdayEvents } = require('./function/birthday/event');
 const { setupFortuneEvents } = require('./function/fortune/event');
+const { setupWeatherEvents } = require('./function/weather/event');
 require('dotenv').config();
 
 const client = new Client({
@@ -70,6 +71,9 @@ client.once('ready', async () => {
 
   // Setup fortune events
   setupFortuneEvents(client);
+
+  // Setup weather events
+  setupWeatherEvents(client);
 });
 
 client.on('interactionCreate', async (interaction) => {

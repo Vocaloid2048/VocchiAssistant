@@ -19,6 +19,13 @@ db.serialize(() => {
     key TEXT PRIMARY KEY,
     value TEXT
   )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS user_settings (
+    user_id TEXT,
+    key TEXT,
+    value TEXT,
+    PRIMARY KEY (user_id, key)
+  )`);
 });
 
 function addBirthday(userId, displayName, username, date) {
@@ -140,6 +147,32 @@ function getSetting(key) {
   });
 }
 
+function setUserSetting(userId, key, value) {
+  return new Promise((resolve, reject) => {
+    const stmt = db.prepare('INSERT OR REPLACE INTO user_settings (user_id, key, value) VALUES (?, ?, ?)');
+    stmt.run(userId, key, value, function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.changes);
+      }
+    });
+    stmt.finalize();
+  });
+}
+
+function getUserSetting(userId, key) {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT value FROM user_settings WHERE user_id = ? AND key = ?', [userId, key], (err, row) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(row ? row.value : null);
+      }
+    });
+  });
+}
+
 module.exports = {
   addBirthday,
   removeBirthday,
@@ -148,6 +181,8 @@ module.exports = {
   searchBirthdays,
   setSetting,
   getSetting,
+  setUserSetting,
+  getUserSetting,
   getNextBirthday,
   close: () => db.close()
 };
