@@ -12,22 +12,22 @@ const COLORS = {
 
 const MESSAGES = {
   ERRORS: {
-    ADD_FAILED: '新增生日提醒時發生錯誤。',
-    REMOVE_FAILED: '刪除生日提醒時發生錯誤。',
-    LIST_FAILED: '獲取生日列表時發生錯誤。',
-    SEARCH_FAILED: '搜索用戶時發生錯誤。',
-    USER_NOT_FOUND: '找不到該用戶的生日提醒。',
-    NO_BIRTHDAYS: '目前沒有任何生日提醒。'
+    BIRTHDAY_ADD_FAILED: '新增生日提醒時發生錯誤。',
+    BIRTHDAY_REMOVE_FAILED: '刪除生日提醒時發生錯誤。',
+    BIRTHDAY_LIST_FAILED: '獲取生日列表時發生錯誤。',
+    BIRTHDAY_SEARCH_FAILED: '搜索用戶時發生錯誤。',
+    BIRTHDAY_USER_NOT_FOUND: '找不到該用戶的生日提醒。',
+    BIRTHDAY_NO_INFO: '目前沒有任何生日提醒。'
   },
   SUCCESS: {
-    ADD_SUCCESS: '生日提醒已新增',
-    REMOVE_SUCCESS: '生日提醒已刪除'
+    BIRTHDAY_ADD_SUCCESS: '生日提醒已新增',
+    BIRTHDAY_REMOVE_SUCCESS: '生日提醒已刪除'
   },
   TITLES: {
-    ADD: '新增生日提醒',
-    REMOVE: '刪除生日提醒',
-    LIST: '生日提醒列表',
-    TEST: '測試生日提醒'
+    BIRTHDAY_ADD: '新增生日提醒',
+    BIRTHDAY_REMOVE: '刪除生日提醒',
+    BIRTHDAY_LIST: '生日提醒列表',
+    BIRTHDAY_NEXT: '即將到來的生日',
   }
 };
 

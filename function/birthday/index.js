@@ -34,12 +34,12 @@ async function handleBirthdayAdd(client, interaction, userInputOrigin, month, da
     await addBirthday(userId, displayName, username, date);
 
     const display = /^\d+$/.test(userId) ? `<@${userId}>` : displayName;
-    const embed = createEmbed(MESSAGES.SUCCESS.ADD_SUCCESS, `已為 ${display} 新增生日提醒：${date}`, COLORS.SUCCESS);
+    const embed = createEmbed(MESSAGES.SUCCESS.BIRTHDAY_ADD_SUCCESS, `已為 ${display} 新增生日提醒：${date}`, COLORS.SUCCESS);
 
     await respondToInteraction(interaction, embed, [], true);
   } catch (error) {
     console.error(error);
-    await respondWithError(interaction, MESSAGES.ERRORS.ADD_FAILED);
+    await respondWithError(interaction, MESSAGES.ERRORS.BIRTHDAY_ADD_FAILED);
   }
 }
 
@@ -48,15 +48,15 @@ async function handleBirthdayRemove(client, interaction, userId) {
     const changes = await removeBirthday(userId);
     if (changes > 0) {
       const { displayName } = await getUserInfo(client, userId);
-      const embed = createEmbed(MESSAGES.SUCCESS.REMOVE_SUCCESS, `已刪除 ${displayName} 的生日提醒`, COLORS.ERROR);
+      const embed = createEmbed(MESSAGES.SUCCESS.BIRTHDAY_REMOVE_SUCCESS, `已刪除 ${displayName} 的生日提醒`, COLORS.ERROR);
 
       await respondToInteraction(interaction, embed, [], true);
     } else {
-      await respondWithError(interaction, MESSAGES.ERRORS.USER_NOT_FOUND);
+      await respondWithError(interaction, MESSAGES.ERRORS.BIRTHDAY_USER_NOT_FOUND);
     }
   } catch (error) {
     console.error(error);
-    await respondWithError(interaction, MESSAGES.ERRORS.REMOVE_FAILED);
+    await respondWithError(interaction, MESSAGES.ERRORS.BIRTHDAY_REMOVE_FAILED);
   }
 }
 

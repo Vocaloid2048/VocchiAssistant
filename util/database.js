@@ -61,6 +61,33 @@ function getAllBirthdays() {
   });
 }
 
+function getNextBirthday() {
+  return new Promise((resolve, reject) => {
+    const today = new Date();
+    const monthDay = `${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getDate().toString().padStart(2, '0')}`;
+    
+    // 首先查詢今天或之後的下一個生日
+    db.get('SELECT * FROM birthdays WHERE date >= ? ORDER BY date ASC LIMIT 1', [monthDay], (err, row) => {
+      if (err) {
+        return reject(err);
+      }
+      
+      if (row) {
+        resolve(row);
+      } else {
+        // 如果今年剩餘時間沒有生日（例如查詢時是 12 月但下一個生日在 1 月），則抓取全表日期最早的一個
+        db.get('SELECT * FROM birthdays ORDER BY date ASC LIMIT 1', [], (err, firstRow) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(firstRow);
+          }
+        });
+      }
+    });
+  });
+}
+
 function getBirthdaysByDate(date) {
   return new Promise((resolve, reject) => {
     db.all('SELECT * FROM birthdays WHERE date = ?', [date], (err, rows) => {
@@ -121,5 +148,6 @@ module.exports = {
   searchBirthdays,
   setSetting,
   getSetting,
+  getNextBirthday,
   close: () => db.close()
 };

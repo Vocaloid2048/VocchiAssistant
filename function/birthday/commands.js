@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require('discord.js');
-const { getAllBirthdays, searchBirthdays } = require('../../util/database');
+const { getAllBirthdays, searchBirthdays, getNextBirthday } = require('../../util/database');
 const { handleBirthdayAdd, handleBirthdayRemove } = require('.');
 const { COLORS, MESSAGES, sortBirthdaysByDate, getBirthdayDisplayName, createEmbed, respondToInteraction, respondWithError } = require('./utils');
 module.exports = {
@@ -38,16 +38,12 @@ module.exports = {
     .addSubcommand(subcommand =>
       subcommand
         .setName('列表')
-        .setDescription('查看所有生日提醒'))
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('測試')
-        .setDescription('測試生日提醒功能')
-        .addStringOption(option =>
-          option.setName('用戶')
-            .setDescription('輸入用戶ID或名字進行搜索')
-            .setRequired(true)
-            .setAutocomplete(true))),
+        .setDescription('查看所有生日提醒')
+        .addBooleanOption(option =>
+          option.setName('僅展示即將到來的生日')
+            .setDescription('是否只顯示下一個即將到來的生日')
+            .setRequired(false))),
+
   async execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
 
@@ -74,7 +70,7 @@ module.exports = {
           .setPlaceholder('選擇月份')
           .addOptions(monthOptions);
 
-        const embed = createEmbed(MESSAGES.TITLES.ADD, `為 ${userInput} 選擇生日月份：`, COLORS.SUCCESS);
+        const embed = createEmbed(MESSAGES.TITLES.BIRTHDAY_ADD, `為 ${userInput} 選擇生日月份：`, COLORS.SUCCESS);
         const row = new ActionRowBuilder().addComponents(monthSelect);
 
         await interaction.reply({ embeds: [embed], components: [row], flags: MessageFlags.Ephemeral });
@@ -83,14 +79,25 @@ module.exports = {
       const userId = interaction.options.getString('用戶');
       await handleBirthdayRemove(interaction.client, interaction, userId);
     } else if (subcommand === '列表') {
+      const showNextOnly = interaction.options.getBoolean('僅展示即將到來的生日');
+
       try {
+        if(showNextOnly) {
+          const birthday = await getNextBirthday(showNextOnly);
+          const embed = createEmbed(MESSAGES.TITLES.BIRTHDAY_NEXT, birthday.length === 0 ? MESSAGES.ERRORS.BIRTHDAY_NO_INFO : '', COLORS.INFO);
+          
+          const display = getBirthdayDisplayName(birthday);
+          embed.setDescription(`${"`"}${birthday.date}${"`"} - ${display}\n`);
+          return interaction.reply({ embeds: [embed] });
+        } 
+
         const birthdays = await getAllBirthdays();
         if (birthdays.length === 0) {
-          const embed = createEmbed(MESSAGES.TITLES.LIST, MESSAGES.ERRORS.NO_BIRTHDAYS, COLORS.INFO);
+          const embed = createEmbed(MESSAGES.TITLES.BIRTHDAY_LIST, MESSAGES.ERRORS.BIRTHDAY_NO_INFO, COLORS.INFO);
           return interaction.reply({ embeds: [embed] });
         }
 
-        const embed = createEmbed(MESSAGES.TITLES.LIST, '', COLORS.INFO);
+        const embed = createEmbed(MESSAGES.TITLES.BIRTHDAY_LIST, '', COLORS.INFO);
 
         // Sort birthdays by date
         const sortedBirthdays = sortBirthdaysByDate(birthdays);
@@ -98,21 +105,15 @@ module.exports = {
         let description = '';
         for (const birthday of sortedBirthdays) {
           const display = getBirthdayDisplayName(birthday);
-          description += `${birthday.date} - ${display}\n`;
+          description += `${"`"}${birthday.date}${"`"} - ${display}\n`;
         }
         embed.setDescription(description);
 
         await interaction.reply({ embeds: [embed] });
       } catch (error) {
         console.error(error);
-        await respondWithError(interaction, MESSAGES.ERRORS.LIST_FAILED);
+        await respondWithError(interaction, MESSAGES.ERRORS.BIRTHDAY_LIST_FAILED);
       }
-    } else if (subcommand === '測試') {
-      const userId = interaction.options.getString('用戶');
-      // Simulate birthday reminder for tomorrow
-      const embed = createEmbed('🎉 明天生日提醒', `<@${userId}>`, COLORS.BIRTHDAY);
-
-      await interaction.reply({ embeds: [embed] });
     }
   }
 };

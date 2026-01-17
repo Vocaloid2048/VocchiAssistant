@@ -82,7 +82,7 @@ function setupBirthdayEvents(client) {
           components.push(row2);
         }
 
-        const embed = createEmbed(MESSAGES.TITLES.ADD, `選擇生日日期：`, COLORS.SUCCESS);
+        const embed = createEmbed(MESSAGES.TITLES.BIRTHDAY_ADD, `選擇生日日期：`, COLORS.SUCCESS);
 
         await interaction.update({ embeds: [embed], components: components });
       } else if (interaction.customId.startsWith('birthday_add_day_')) {
