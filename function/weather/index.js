@@ -232,7 +232,7 @@ function createWeatherEmbed(title, weatherData, region = null) {
   const embed = createEmbed(title, description, COLORS.WEATHER);
 
   const tempField = weatherData.temperature && weatherData.maxTemp && weatherData.minTemp
-    ? `${weatherData.temperature} (↑${weatherData.maxTemp} / ↓${weatherData.minTemp})`
+    ? `${weatherData.temperature}\n(↑${weatherData.maxTemp} / ↓${weatherData.minTemp})`
     : weatherData.temperature || 'N/A';
 
   embed.addFields(

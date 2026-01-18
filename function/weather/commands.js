@@ -2,6 +2,7 @@ const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } = requi
 const { getCurrentWeather, createWeatherEmbed, createTyphoonEmbed } = require('./index');
 const { respondToInteraction, respondWithError, MESSAGES, WEATHER_REGIONS, COLORS, createEmbed } = require('./utils');
 const { setUserSetting, getUserSetting } = require('../../util/database');
+const { scheduleWeatherForUser } = require('./event');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -69,6 +70,9 @@ module.exports = {
 
             await setUserSetting(userId, 'weather_reminder_hour', hour.toString());
             await setUserSetting(userId, 'weather_reminder_minute', minute.toString());
+
+            // Reschedule the weather reminder for this user
+            await scheduleWeatherForUser(interaction.client, userId);
 
             const embed = createEmbed('設定成功', `每日天氣預報提醒時間已設定為 ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`, COLORS.SUCCESS);
             await respondToInteraction(interaction, embed);

@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { setUserSetting, getUserSetting } = require('../../util/database');
 const { createEmbed, COLORS, respondToInteraction, respondWithError } = require('./utils');
-const { rescheduleWeatherForUser } = require('../weather/event');
+const { scheduleWeatherForUser, cancelWeatherForUser } = require('../weather/event');
 
 const SUBSCRIPTIONS = {
   '生日提醒': 'birthday_subscription',
@@ -40,11 +40,29 @@ module.exports = {
       if (subscriptionKey === 'all') {
         await setUserSetting(userId, 'birthday_subscription', status);
         await setUserSetting(userId, 'weather_subscription', status);
+        
+        // Handle weather scheduling
+        if (status === 'true') {
+          await scheduleWeatherForUser(interaction.client, userId);
+        } else {
+          cancelWeatherForUser(userId);
+        }
+        
         const statusText = status === 'true' ? '已同意' : '已取消';
         const embed = createEmbed('訂閱設定', `${statusText} 所有項目的接收`, COLORS.SUCCESS);
         await respondToInteraction(interaction, embed);
       } else {
         await setUserSetting(userId, subscriptionKey, status);
+        
+        // Handle weather scheduling if weather subscription changed
+        if (subscriptionKey === 'weather_subscription') {
+          if (status === 'true') {
+            await scheduleWeatherForUser(interaction.client, userId);
+          } else {
+            cancelWeatherForUser(userId);
+          }
+        }
+        
         const itemName = Object.keys(SUBSCRIPTIONS).find(k => SUBSCRIPTIONS[k] === subscriptionKey);
         const statusText = status === 'true' ? '已同意' : '已取消';
         const embed = createEmbed('訂閱設定', `${statusText} ${itemName} 的接收`, COLORS.SUCCESS);
