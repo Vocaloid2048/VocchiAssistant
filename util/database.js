@@ -34,6 +34,27 @@ db.serialize(() => {
     description TEXT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS cats (
+    user_id TEXT PRIMARY KEY,
+    name TEXT,
+    health INTEGER DEFAULT 100,
+    hunger INTEGER DEFAULT 50,
+    happiness INTEGER DEFAULT 50,
+    money INTEGER DEFAULT 100,
+    experience INTEGER DEFAULT 0,
+    level INTEGER DEFAULT 1,
+    head TEXT DEFAULT 'default',
+    body TEXT DEFAULT 'default',
+    legs TEXT DEFAULT 'default',
+    tail TEXT DEFAULT 'default',
+    auto_feed BOOLEAN DEFAULT 0,
+    auto_play BOOLEAN DEFAULT 0,
+    last_feed DATETIME,
+    last_play DATETIME,
+    last_work DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
 });
 
 function addBirthday(userId, displayName, username, date) {
@@ -227,6 +248,64 @@ function getMoodRecords(userId, limit = 10) {
   });
 }
 
+// Cat functions
+function createCat(userId, name) {
+  return new Promise((resolve, reject) => {
+    const stmt = db.prepare('INSERT OR REPLACE INTO cats (user_id, name) VALUES (?, ?)');
+    stmt.run(userId, name, function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.changes);
+      }
+    });
+    stmt.finalize();
+  });
+}
+
+function getCat(userId) {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT * FROM cats WHERE user_id = ?', [userId], (err, row) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(row);
+      }
+    });
+  });
+}
+
+function updateCatStats(userId, stats) {
+  return new Promise((resolve, reject) => {
+    const fields = Object.keys(stats);
+    const values = Object.values(stats);
+    const setClause = fields.map(field => `${field} = ?`).join(', ');
+    const sql = `UPDATE cats SET ${setClause} WHERE user_id = ?`;
+    values.push(userId);
+    const stmt = db.prepare(sql);
+    stmt.run(values, function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.changes);
+      }
+    });
+    stmt.finalize();
+  });
+}
+
+function getAllCats() {
+  return new Promise((resolve, reject) => {
+    db.all('SELECT * FROM cats', [], (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows);
+      }
+    });
+  });
+}
+
 module.exports = {
   addBirthday,
   removeBirthday,
@@ -242,5 +321,9 @@ module.exports = {
   getNextBirthday,
   addMoodRecord,
   getMoodRecords,
+  createCat,
+  getCat,
+  updateCatStats,
+  getAllCats,
   close: () => db.close()
 };

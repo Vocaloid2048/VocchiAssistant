@@ -5,6 +5,7 @@ const { setupBirthdayEvents } = require('./function/birthday/event');
 const { setupFortuneEvents } = require('./function/fortune/event');
 const { setupWeatherEvents } = require('./function/weather/event');
 const { setupMoodEvents } = require('./function/mood/event');
+const { setupCatEvents } = require('./function/cat/event');
 require('dotenv').config();
 
 const client = new Client({
@@ -78,6 +79,9 @@ client.once('ready', async () => {
 
   // Setup mood events
   setupMoodEvents(client);
+
+  // Setup cat events
+  setupCatEvents(client);
 });
 
 client.on('interactionCreate', async (interaction) => {
