@@ -28,7 +28,7 @@ async function scheduleWeatherForUser(client, userId) {
 
       const fortune = getRandomFortune(client.user.id);
 
-      const embed = createWeatherEmbed(`今天天氣預報 - ${region}`, weatherData, region);
+      const embed = createWeatherEmbed(`【即時天氣 - ${region}】`, weatherData, region);
       embed.addFields({ name: '運氣', value: fortune, inline: false });
 
       const user = await client.users.fetch(userId);
