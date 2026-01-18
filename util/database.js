@@ -26,6 +26,14 @@ db.serialize(() => {
     value TEXT,
     PRIMARY KEY (user_id, key)
   )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS mood_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    description TEXT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
 });
 
 function addBirthday(userId, displayName, username, date) {
@@ -193,6 +201,32 @@ function getAllUsersWithSetting(key, value) {
   });
 }
 
+function addMoodRecord(userId, emoji, description) {
+  return new Promise((resolve, reject) => {
+    const stmt = db.prepare('INSERT INTO mood_records (user_id, emoji, description) VALUES (?, ?, ?)');
+    stmt.run(userId, emoji, description, function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.lastID);
+      }
+    });
+    stmt.finalize();
+  });
+}
+
+function getMoodRecords(userId, limit = 10) {
+  return new Promise((resolve, reject) => {
+    db.all('SELECT * FROM mood_records WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?', [userId, limit], (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows);
+      }
+    });
+  });
+}
+
 module.exports = {
   addBirthday,
   removeBirthday,
@@ -206,5 +240,7 @@ module.exports = {
   getUserSetting,
   getAllUsersWithSetting,
   getNextBirthday,
+  addMoodRecord,
+  getMoodRecords,
   close: () => db.close()
 };
