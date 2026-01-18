@@ -6,6 +6,7 @@ const { setupFortuneEvents } = require('./function/fortune/event');
 const { setupWeatherEvents } = require('./function/weather/event');
 const { setupMoodEvents } = require('./function/mood/event');
 const { setupCatEvents } = require('./function/cat/event');
+require('./backup');
 require('dotenv').config();
 
 const client = new Client({
