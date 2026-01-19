@@ -1,5 +1,5 @@
 const { Events, EmbedBuilder } = require('discord.js');
-const { deleteUserEchos, initEchoDB, startScheduledReplies } = require('./index');
+const { deleteUserEchos, initEchoDB } = require('./index');
 
 async function setupEchoEvents(client) {
     // 不再需要 modal 處理，因為銷毀直接使用按鈕
@@ -7,6 +7,5 @@ async function setupEchoEvents(client) {
 
 module.exports = {
     setupEchoEvents,
-    initEchoDB,
-    startScheduledReplies
+    initEchoDB
 };

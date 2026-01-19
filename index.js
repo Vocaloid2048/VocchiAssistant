@@ -6,7 +6,7 @@ const { setupFortuneEvents } = require('./function/fortune/event');
 const { setupWeatherEvents } = require('./function/weather/event');
 const { setupMoodEvents } = require('./function/mood/event');
 const { setupCatEvents } = require('./function/cat/event');
-const { setupEchoEvents, initEchoDB, startScheduledReplies } = require('./function/echo/event');
+const { setupEchoEvents, initEchoDB } = require('./function/echo/event');
 require('./backup');
 require('dotenv').config();
 
@@ -92,7 +92,6 @@ client.once('ready', async () => {
   // Setup echo events
   await initEchoDB();
   setupEchoEvents(client);
-  startScheduledReplies(client);
 });
 
 client.on('interactionCreate', async (interaction) => {

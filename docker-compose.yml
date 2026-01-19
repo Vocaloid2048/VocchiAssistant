@@ -1,29 +1,13 @@
 version: '3.8'
 
 services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: vocchi-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-    environment:
-      - OLLAMA_HOST=0.0.0.0
-    command: serve
-
   bot:
     build: .
     container_name: vocchi-bot
-    depends_on:
-      - ollama
     volumes:
       - ./db:/app/db
       - ./.env:/app/.env
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-
-volumes:
-  ollama_data:
+      - TZ=Asia/Taipei

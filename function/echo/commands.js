@@ -9,27 +9,22 @@ const echoCommand = {
         .addStringOption(option =>
             option.setName('內容')
                 .setDescription('你想說的話')
-                .setRequired(true))
-        .addBooleanOption(option =>
-            option.setName('希望收到回覆')
-                .setDescription('是否希望在凌晨收到AI回覆 (預設: false)')
-                .setRequired(false)),
+                .setRequired(true)),
 
     async execute(interaction) {
         const content = interaction.options.getString('內容');
-        const wantReply = interaction.options.getBoolean('希望收到回覆') || false;
 
         // 檢查每日限制
         const canInput = await checkDailyLimit(interaction.user.id);
         if (!canInput) {
             return await interaction.reply({
-                content: '今天你已經輸入過殘響了，請明天再來吧。',
+                content: '今天你已經留下過殘響了，請明天再來吧！',
                 ephemeral: true
             });
         }
 
         // 保存殘響
-        await saveEcho(interaction.user.id, content, wantReply);
+        await saveEcho(interaction.user.id, content);
 
         await interaction.reply('……收下了。');
     }
@@ -150,7 +145,7 @@ const deleteCommand = {
                     {
                         type: 2,
                         style: 4, // Danger
-                        label: '是的，刪除',
+                        label: '刪除',
                         custom_id: `echo_delete_${interaction.user.id}`
                     },
                     {
