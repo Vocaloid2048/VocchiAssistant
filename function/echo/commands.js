@@ -23,7 +23,7 @@ const echoCommand = {
         const canInput = await checkDailyLimit(interaction.user.id);
         if (!canInput) {
             return await interaction.reply({
-                content: '今天你已經輸入過殘響了，請明天再來吧。',
+                content: '……今天已經有你的聲音了。明天再來吧。',
                 ephemeral: true
             });
         }

@@ -3,14 +3,15 @@ const axios = require('axios');
 // 設置Ollama模型
 async function setupOllama() {
     try {
-        console.log('正在拉取Mistral模型...');
+        console.log('正在拉取模型...');
 
-        // 拉取mistral模型
+        // 拉取qwen2.5:0.5b模型
         await axios.post('http://localhost:11434/api/pull', {
-            name: 'mistral'
+            name: 'qwen2.5:0.5b'
         });
+        
 
-        console.log('Mistral模型拉取完成！');
+        console.log('模型拉取完成！');
         console.log('AI回覆功能已準備就緒。');
 
     } catch (error) {

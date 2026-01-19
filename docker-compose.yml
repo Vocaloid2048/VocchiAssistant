@@ -24,6 +24,7 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
+      - TZ=Asia/Hong_Kong
 
 volumes:
   ollama_data:

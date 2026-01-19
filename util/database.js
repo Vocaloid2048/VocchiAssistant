@@ -1,4 +1,5 @@
 const sqlite3 = require('sqlite3').verbose();
+const { promisify } = require('util');
 
 const db = new sqlite3.Database('./db/data.db', (err) => {
   if (err) {
@@ -6,6 +7,11 @@ const db = new sqlite3.Database('./db/data.db', (err) => {
   }
   console.log('Connected to the data database.');
 });
+
+// Promisify db methods
+db.allAsync = promisify(db.all.bind(db));
+db.runAsync = promisify(db.run.bind(db));
+db.getAsync = promisify(db.get.bind(db));
 
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS birthdays (
