@@ -1,13 +1,34 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 const { createCat, getCat, updateCatStats } = require('../../util/database');
 
-// Cat parts for image generation (simple text-based for now)
-const CAT_PARTS = {
-  head: ['😺', '😸', '😻', '😽', '🙀'],
-  body: ['🐱', '🦁', '🐈'],
-  legs: ['🐾', '👣'],
-  tail: ['🦊', '🐶']
-};
+// Cat ASCII Arts
+const CAT_ASCII_ARTS = [
+  `
+ /\\_/\\
+( o.o )
+ > ^ <
+`,
+  `
+ /\\_/\\
+( -.- )
+ > ^ <
+`,
+  `
+ /\\_/\\
+( =^.^= )
+ > ^ <
+`,
+  `
+ /\\_/\\
+( >.< )
+ > ^ <
+`,
+  `
+ /\\_/\\
+( ^.^ )
+ > ^ <
+`
+];
 
 // Items
 const ITEMS = {
@@ -22,28 +43,54 @@ const TIME_ACTIONS = {
   evening: { feed: true, play: true }
 };
 
-// Generate cat image (simple combination)
+// Generate cat image (ASCII Art)
 function generateCatImage(cat) {
-  const head = CAT_PARTS.head[parseInt(cat.head) || 0];
-  const body = CAT_PARTS.body[parseInt(cat.body) || 0];
-  const legs = CAT_PARTS.legs[parseInt(cat.legs) || 0];
-  const tail = CAT_PARTS.tail[parseInt(cat.tail) || 0];
-  return `${head}\n${body}\n${legs} ${tail}`;
+  const level = cat.level || 1;
+  const artIndex = Math.min(level - 1, CAT_ASCII_ARTS.length - 1);
+  return `\`\`\`\n${CAT_ASCII_ARTS[artIndex]}\`\`\``;
+}
+
+// Create progress bar
+function createProgressBar(value, max = 100, length = 10) {
+  const percentage = Math.max(0, Math.min(100, (value / max) * 100));
+  const filled = Math.round((percentage / 100) * length);
+  const empty = length - filled;
+  return '█'.repeat(filled) + '░'.repeat(empty);
 }
 
 // Check if action is allowed based on time
 function canPerformAction(lastTime, hours = 4) {
-  if (!lastTime) return true;
+  if (!lastTime) return { canPerform: true, remainingTime: 0 };
   const now = new Date();
   const last = new Date(lastTime);
-  return (now - last) > (hours * 60 * 60 * 1000);
+  const elapsed = now - last;
+  const cooldownMs = hours * 60 * 60 * 1000;
+  const remainingMs = cooldownMs - elapsed;
+
+  if (remainingMs <= 0) {
+    return { canPerform: true, remainingTime: 0 };
+  } else {
+    return { canPerform: false, remainingTime: remainingMs };
+  }
+}
+
+// Format remaining time as Discord timestamp
+function formatRemainingTime(ms) {
+  const now = new Date();
+  const availableTime = new Date(now.getTime() + ms);
+  const timestamp = Math.floor(availableTime.getTime() / 1000);
+  return `<t:${timestamp}:R>`;
 }
 
 // Feed cat
 async function feedCat(userId) {
   const cat = await getCat(userId);
   if (!cat) return { success: false, message: '你還沒有貓咪！' };
-  if (!canPerformAction(cat.last_feed)) return { success: false, message: '餵食冷卻中，請稍後再試。' };
+  const actionCheck = canPerformAction(cat.last_feed);
+  if (!actionCheck.canPerform) {
+    const remainingTime = formatRemainingTime(actionCheck.remainingTime);
+    return { success: false, message: `餵食冷卻中，請在${remainingTime}後再來。` };
+  }
 
   const newHunger = Math.max(0, cat.hunger - 20);
   const newHealth = Math.min(100, cat.health + 5);
@@ -58,7 +105,11 @@ async function feedCat(userId) {
 async function playWithCat(userId) {
   const cat = await getCat(userId);
   if (!cat) return { success: false, message: '你還沒有貓咪！' };
-  if (!canPerformAction(cat.last_play)) return { success: false, message: '玩耍冷卻中，請稍後再試。' };
+  const actionCheck = canPerformAction(cat.last_play);
+  if (!actionCheck.canPerform) {
+    const remainingTime = formatRemainingTime(actionCheck.remainingTime);
+    return { success: false, message: `玩耍冷卻中，請在${remainingTime}後再來。` };
+  }
 
   const newHappiness = Math.min(100, cat.happiness + 20);
   const expGain = 15;
@@ -72,7 +123,11 @@ async function playWithCat(userId) {
 async function workCat(userId) {
   const cat = await getCat(userId);
   if (!cat) return { success: false, message: '你還沒有貓咪！' };
-  if (!canPerformAction(cat.last_work, 8)) return { success: false, message: '工作冷卻中，請稍後再試。' };
+  const actionCheck = canPerformAction(cat.last_work, 8);
+  if (!actionCheck.canPerform) {
+    const remainingTime = formatRemainingTime(actionCheck.remainingTime);
+    return { success: false, message: `工作冷卻中，請在${remainingTime}後再來。` };
+  }
 
   const earn = 20;
   const newMoney = cat.money + earn;
@@ -94,7 +149,18 @@ async function buyItem(userId, itemType) {
 
   const newMoney = cat.money - item.price;
   const updates = { money: newMoney };
-  Object.assign(updates, item.effect);
+
+  // Apply item effects with bounds checking
+  if (item.effect.hunger !== undefined) {
+    updates.hunger = Math.max(0, Math.min(100, cat.hunger + item.effect.hunger));
+  }
+  if (item.effect.health !== undefined) {
+    updates.health = Math.max(0, Math.min(100, cat.health + item.effect.health));
+  }
+  if (item.effect.happiness !== undefined) {
+    updates.happiness = Math.max(0, Math.min(100, cat.happiness + item.effect.happiness));
+  }
+
   await updateCatStats(userId, updates);
   return { success: true, message: `購買 ${item.name} 成功！` };
 }
@@ -135,9 +201,9 @@ function createCatEmbed(cat) {
     .setTitle(`${cat.name} 的狀態`)
     .setDescription(generateCatImage(cat))
     .addFields(
-      { name: '健康度', value: `${cat.health}/100`, inline: true },
-      { name: '飢餓度', value: `${cat.hunger}/100`, inline: true },
-      { name: '幸福值', value: `${cat.happiness}/100`, inline: true },
+      { name: '健康度', value: `${createProgressBar(cat.health)}\n${cat.health}/100`, inline: true },
+      { name: '飢餓度', value: `${createProgressBar(cat.hunger)}\n${cat.hunger}/100`, inline: true },
+      { name: '幸福值', value: `${createProgressBar(cat.happiness)}\n${cat.happiness}/100`, inline: true },
       { name: '金錢', value: `${cat.money}`, inline: true },
       { name: '經驗值', value: `${cat.experience}`, inline: true },
       { name: '等級', value: `${cat.level}`, inline: true }
