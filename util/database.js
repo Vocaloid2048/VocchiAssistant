@@ -307,6 +307,7 @@ function getAllCats() {
 }
 
 module.exports = {
+  getDB: () => db,
   addBirthday,
   removeBirthday,
   getAllBirthdays,
